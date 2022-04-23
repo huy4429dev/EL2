@@ -29,4 +29,10 @@ mix
     })
     .react()
     .sass('resources/sass/app.scss', 'public/css')
+    .options({
+        watchOptions: {
+            ignored: /node_modules/
+        },
+        processCssUrls: false
+    });
 

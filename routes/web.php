@@ -1,16 +1,14 @@
 <?php
 
 use App\Http\Controllers\AboutPageController;
-use App\Http\Controllers\ContactPageController;
-use App\Http\Controllers\HomePageController;
-use App\Http\Controllers\BlogPageController;
-use App\Http\Controllers\CoursePageController;
-use App\Http\Controllers\VnpayController;
-
-
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\BlogPageController;
+use App\Http\Controllers\ContactPageController;
+use App\Http\Controllers\CoursePageController;
+use App\Http\Controllers\HomePageController;
 use App\Http\Controllers\MailjetController;
 use App\Http\Controllers\SinglePageController;
+use App\Http\Controllers\VnpayController;
 use App\Models\MailConfig;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -27,13 +25,14 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::get("/debug", function () {
-    $config = MailConfig::with("template","campaign")
-    ->where("campaign_id",19)
- ->first();
-dd($config);
+    dd(now()->hour(15)->minute(0)->second(0)->diffInMinutes(now(),false));
+    $config = MailConfig::with("template", "campaign")
+        ->where("campaign_id", 19)
+        ->first();
+    dd($config);
 
-$html = $config->template->html;
-dd($html);
+    $html = $config->template->html;
+    dd($html);
 
     // $lead = Lead::first();
     // $campaign = Campaign::first();
@@ -41,8 +40,7 @@ dd($html);
     // dispatch(new HandleInvited(43, 1));
 });
 
-Auth::routes();
-
+// Auth::routes();
 
 Route::get('/vnpay/checkout', [VnpayController::class, 'payment'])->where('path', '[a-zA-Z0-9-/]+');
 Route::get('/vnpay/success', [VnpayController::class, 'success'])->where('path', '[a-zA-Z0-9-/]+');
@@ -56,11 +54,9 @@ Route::post('/course/{slug}/{classId}/register', [CoursePageController::class, '
 Route::get('/course/{slug}/classes', [CoursePageController::class, 'classes'])->where('path', '[a-zA-Z0-9-/]+');
 Route::get('/course/{slug}', [CoursePageController::class, 'detail'])->where('path', '[a-zA-Z0-9-/]+');
 
-
 Route::get('/about', [AboutPageController::class, 'index'])->where('path', '[a-zA-Z0-9-/]+');
 Route::get('/contact', [ContactPageController::class, 'index'])->where('path', '[a-zA-Z0-9-/]+');
 Route::post('/contact', [ContactPageController::class, 'store'])->where('path', '[a-zA-Z0-9-/]+');
-
 
 Route::get('/admin/{path?}', [AdminController::class, 'index'])->where('path', '[a-zA-Z0-9-/]+');
 Route::get('/preview/{id}/{previewId}', [MailjetController::class, 'preview'])->name("preview");

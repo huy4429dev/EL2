@@ -64,4 +64,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(BlogPost::class);
     }
+
+    public function timeKeepings()
+    {
+        return $this->hasMany(TimeKeeping::class);
+    }
 }

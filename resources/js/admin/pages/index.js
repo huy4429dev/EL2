@@ -1,5 +1,9 @@
-import { Layout, Menu,   Avatar,
-    Dropdown, } from 'antd';
+import {
+    Layout, Menu, Avatar,
+    Dropdown,
+    Space,
+    Button,
+} from 'antd';
 const { Header, Content, Footer, Sider } = Layout;
 const { SubMenu } = Menu;
 import routes from '../routes';
@@ -8,11 +12,12 @@ import { Link } from 'react-router-dom';
 import React, { useEffect, useState, useContext } from 'react';
 import MenuContext from '../context/menu';
 import { useMatch } from 'react-router-dom';
+import { useQueryClient, useQuery } from "react-query";
 
 const DashBoard = ({ children }) => {
     const { collapsed, toggleMenu } = useContext(MenuContext)
     const role = JSON.parse(localStorage.getItem('user'))?.role;
-
+    const queryClient = useQueryClient();
 
     // console.log(path);
     const navigate = useNavigate();
@@ -22,6 +27,20 @@ const DashBoard = ({ children }) => {
             navigate("/admin/login");
         }
     }, []);
+
+
+    const handleCheckInOut = async (type) => {
+        try {
+            await axios.post("/api/admin/time-keeping",{
+                type
+            });
+
+            message.success(type == 1 ? "Checkout thành công" : "Check in thành công");
+            queryClient.invalidateQueries("time-keeping");
+        } catch ({ response }) {
+
+        }
+    };
 
     let selectedKey = null;
     let openKey = null;
@@ -51,7 +70,7 @@ const DashBoard = ({ children }) => {
     const handleLogout = () => {
         localStorage.removeItem("access_token");
         navigate("/admin/login");
-      };
+    };
 
 
     const menu = (
@@ -85,7 +104,7 @@ const DashBoard = ({ children }) => {
                             .filter(x => !x.hidden && x.roles?.includes(role))
                             .map((r, index) => {
                                 const childs = r.childs?.filter(x => !x.hidden);
-                                
+
                                 if (childs) {
                                     return <SubMenu key={index} icon={r.icon} title={r.title}>
                                         {
@@ -104,21 +123,34 @@ const DashBoard = ({ children }) => {
             </Sider>
             <Layout className="site-layout">
                 <Header className="site-layout-background" style={{ padding: 0 }} >
-                    <Dropdown overlay={menu} trigger={["click"]}>
-                        <Avatar
-                            className="custom-icon"
-                            style={{
-                                backgroundColor: "#ff7979",
-                                fontWeight: 500,
-                                position: 'absolute',
-                                top: 15,
-                                right: 15,
-                                cursor: 'pointer'
-                            }}
-                        >
-                            { "A"}
-                        </Avatar>
-                    </Dropdown>
+                    <Space style={{
+                        float:"right"
+                    }}>
+                        
+                        <Button
+                        type='primary'
+                            onClick={() => handleCheckInOut(1)}
+                        >Check In
+                        </Button>
+                        <Button
+                            danger
+                            onClick={() => handleCheckInOut(2)}
+                        >Check Out
+                        </Button>
+                        <Dropdown overlay={menu} trigger={["click"]}>
+                            <Avatar
+                                className="custom-icon"
+                                style={{
+                                    backgroundColor: "#ff7979",
+                                    fontWeight: 500,
+
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {"A"}
+                            </Avatar>
+                        </Dropdown>
+                    </Space>
                 </Header>
                 <Content style={{ margin: '0 16px' }}>
                     {children}

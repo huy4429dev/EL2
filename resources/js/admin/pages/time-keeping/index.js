@@ -1,269 +1,256 @@
-const { Button, Table, Popconfirm, message, Input, Space, DatePicker } = require("antd");
-import { DeleteFilled, EditFilled, CopyOutlined } from "@ant-design/icons";
-import Breadcrumb from "../../components/breadcrumbs";
+const { Button, Table, Space, DatePicker, Input, Modal } = require("antd");
+
 import { useNavigate } from "react-router";
 import { useQueryClient, useQuery } from "react-query";
 import { Link, useLocation } from "react-router-dom";
-import { css } from "@emotion/react";
-import React, { useEffect, useState } from "react";
-import Modal from '../../components/modal'
+import React, { useEffect, useState, useCallback } from "react";
 import { useDebounce } from "../../../lib/hook";
 
 import moment from "moment";
-import Calendar from "../../components/calendar";
-import TabDate from "./components/TabDate";
-import Form from "./components/form";
 
 const CustomerPage = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState(null);
-
-  const getDate = new Date().toDateString()
-  const { dateWeek, setDateWeek } = useState("");
-
-  const [visible, setVisible] = useState(false);
-  const [action, setAction] = useState("");
-
-  const debouncedSearchQuery = useDebounce(search, 600);
-
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 5,
-    total: 0,
+  const [filter, setFilter] = useState({
+    search: null,
+    month: moment(),
   });
 
-  const handleSetDate = (value) => {
-    // setDateWeek(value)
-    console.log(value ,'value');
-  }
+  const [data, setData] = useState([]);
+  const [complains, setComplains] = useState([]);
+  const [complainContent, setComplainContent] = useState(null);
+  const [openComplain, setOpenComplain] = useState(null);
 
-  const handleTableChange = (pagination, filters, sorter) => {
-    setPagination(pagination);
-  };
 
-  const handleDelete = async (id) => {
-    // try {
-    //     await axios.delete("/api/admin/teacher/" + id);
-    //     setPagination({
-    //         ...pagination,
-    //         total: pagination.total - 1
-    //     })
-    //     message.success("Xoá giáo viên thành công");
-    //     queryClient.invalidateQueries("teacher");
-    // } catch ({ response }) {
-    //     const { data } = response;
-    //     message.error(data.error);
-    // }
-  };
+  const debouncedSearchQuery = useDebounce(filter, 600);
+
   const columns = [
     {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-      width: 80,
+      title: "Nhân viên",
+      dataIndex: "name",
+      key: "name",
     },
     {
-      title: 'Registration Hours',
-      children: [
-        {
-          title: 'Check in',
-          dataIndex: 'checkin',
-          key: 'checkin',
-          width: 100,
-        },
-        {
-          title: 'Check out',
-          dataIndex: 'checkout',
-          key: 'checkout',
-          width: 100,
-        },
-      ],
+      title: 'Số phút đi muôn',
+      key: "lt",
+      render: (text, record) => {
+        //sum time keeping compare
+        return record.time_keepings?.filter(item => item.type == 1).reduce((acc, item) => {
+          if (item.compare_time > 0) {
+            return acc;
+          }
+          return acc + item.compare_time;
+        }, 0);
+      }
     },
     {
-      title: 'Checking time',
-      children: [
-        {
-          title: 'Check in',
-          dataIndex: 'checkintime',
-          key: 'checkintime',
-          width: 100,
-        },
-        {
-          title: 'Check out',
-          dataIndex: 'checkouttime',
-          key: 'checkouttime',
-          width: 100,
-        },
-      ],
-    },
-    {
-      title: 'Result',
-      children: [
-        {
-          title: 'Check in late',
-          dataIndex: 'checkinlate',
-          key: 'checkinlate',
-          width: 100,
-        },
-        {
-          title: 'Check out early',
-          dataIndex: 'checkoutearly',
-          key: 'checkoutearly',
-          width: 120,
-        },
-      ],
-    },
-    {
-      title: 'Edited by',
-      dataIndex: 'editby',
-      key: 'editby',
-      width: 80,
-    },
-    {
-      title: "status",
-      dataIndex: "status",
-      key: "status",
-      className: "text-center",
-      render: (text, record) => (
-        <>
-          {record.status ? (
-            <span
-              style={{ cursor: "pointer", minWidth: 100 }}
-              className="badge bg-primary"
-            >
-              Đang hoạt động
-            </span>
-          ) : (
-            <span
-              style={{ cursor: "pointer", minWidth: 100 }}
-              className="badge bg-warning "
-            >
-              Tạm ngưng
-            </span>
-          )}
-        </>
-      ),
-    },
-    {
-      title: 'Complain',
-      dataIndex: 'complain',
-      key: 'complain',
-      width: 100,
-    },
-    {
-      title: 'Complanin Reply',
-      dataIndex: 'complainreply',
-      key: 'complainreply',
-      width: 100,
-    },
-    {
-      title: "Action",
-      dataIndex: "add",
-      key: "add",
-      render: (text, record) => (
-        <>
-          <Button
-            className="ml-auto"
-            type="primary"
-            onClick={() => {
-              setVisible(true);
-              setAction("add");
-            }}
-          >
-            Complation
-          </Button>
-
-        </>
-      ),
+      title: 'Số phút về sớm',
+      key: "gt",
+      render: (text, record) => {
+        //sum time keeping compare
+        return record.time_keepings?.filter(item => item.type == 2).reduce((acc, item) => {
+          if (item.compare_time > 0) {
+            return acc;
+          }
+          return acc + item.compare_time;
+        }, 0);
+      }
     },
   ];
 
-  const data = [];
-  for (let i = 0; i < 10; i++) {
-    data.push({
-      key: i,
-      date: '15/04/2022',
-      checkin: '08:30',
-      checkout: '17:30',
-      checkintime: '08:30',
-      checkouttime: '17:30',
-      checkinlate: '-10',
-      checkoutearly: '0',
-      editby: 'Kien Trinh',
-      status: true,
-      complain: 'Deline',
-      complainreply: 'Heloo'
+  useEffect(() => {
+    axios.get("/api/admin/time-keeping", {
+      params: {
+        ...filter,
+        start: moment(filter.month).startOf("month").format("YYYY-MM-DD"),
+        end: moment(filter.month).endOf("month").format("YYYY-MM-DD"),
+        search: debouncedSearchQuery,
+      },
+    }).then(({ data }) => {
+      console.log(data)
+      setData(data.data);
     });
-  }
 
+    axios.get("/api/admin/time-keeping-complain", {
+      params: {
+        ...filter,
+        start: moment(filter.month).startOf("month").format("YYYY-MM-DD"),
+        end: moment(filter.month).endOf("month").format("YYYY-MM-DD"),
+        search: debouncedSearchQuery,
+      },
+    }).then(({ data }) => {
+      setComplains(data.data);
+    });
+
+  }, [filter.month, filter.search]);
+
+
+  const expandedRowRender = (record) => {
+    const groupsDate = record.time_keepings.reduce((groups, item) => {
+      const date = moment(item).format("DD-MM-YYYY");
+      const index = groups.findIndex(item => item.date === date);
+      if (index < 0) {
+        groups.push({
+          date,
+          data: [item],
+        });
+      } else {
+        groups[index].data.push(item);
+      }
+      return groups;
+    }, []);
+
+    return <Table
+      rowKey="id"
+      expandable={{
+        rowExpandable: false,
+        showExpandColumn: false
+      }}
+      columns={[
+        {
+          title: 'Ngày', dataIndex: 'date', key: 'date',
+        },
+        {
+          title: "Checkin",
+          children: [
+            {
+              title: "Giờ Checkin",
+              render: (text, record) => {
+                const checkin = record.data.filter(x => x.type == 1);
+                const created_at = checkin[checkin.length - 1]?.["created_at"];
+                return created_at ? moment(created_at)?.format("HH:mm") : null
+              },
+            }, {
+              title: "Đi muộn",
+              render: (text, record) => {
+                const checkin = record.data.filter(x => x.type == 1);
+                const compare_time = checkin[checkin.length - 1]?.["compare_time"];
+                return compare_time < 0 ? compare_time : null
+              },
+            }
+          ]
+        },
+        {
+          title: "Checkout",
+          children: [
+            {
+              title: "Giờ Checkout",
+              render: (text, record) => {
+                const checkin = record.data.filter(x => x.type == 2);
+                const created_at = checkin[checkin.length - 1]?.["created_at"];
+                return created_at ? moment(created_at)?.format("HH:mm") : null
+              },
+            }, {
+              title: "Về sớm",
+              render: (text, record) => {
+                const checkin = record.data.filter(x => x.type == 2);
+                const compare_time = checkin[checkin.length - 1]?.["compare_time"];
+                return compare_time < 0 ? compare_time : null
+              },
+            }
+          ]
+        },
+        {
+          title: "Khiếu nại",
+          render: (text, record) => {
+            const complain = complains.find(item => {
+              console.log(item.date, moment(record.date, "DD-MM-YYYY").format("YYYY-MM-DD"))
+              return item.date == record.date
+            });
+            return complain ? complain.complain : <Button onClick={() => setOpenComplain(record.date)}>Khiếu nại</Button>;
+          }
+        },
+        {
+          title: "Trả lời",
+          render: (text, record) => {
+            const complain = complains.find(item => {
+              return item.date == record.date
+            });
+            return complain?.reply ? complain.reply : <Button onClick={() => setOpenComplain(record.date)}>Trả lời</Button>;
+          }
+        }
+      ]}
+
+      dataSource={groupsDate} pagination={false} />;
+  };
+
+  const sendCompain = async () => {
+    try {
+      const index = complains.findIndex(item => {
+        return item.date == openComplain
+      })
+      if (index >= 0) {
+        var { data } = await axios.put("/api/admin/time-keeping-complain/" + complains[index].id, {
+          reply: complainContent,
+        });
+        setComplains([
+          ...complains,
+          data
+        ]);
+
+      } else {
+        var { data } = await axios.post("/api/admin/time-keeping-complain", {
+          date: openComplain,
+          complain: complainContent,
+        });
+        complains[index] = data;
+        setComplains([
+          ...complains,
+        ]);
+      }
+
+      setOpenComplain(null);
+
+    } catch (e) {
+      console.log(e)
+    }
+  };
 
   return (
     <div>
-      <div className="site-layout-background mb-3 mt-3" style={{ padding: 10, minHeight: 60 }}> 
-      <Breadcrumb items={[`${getDate}`]}>
-        <Space>
-
-          <Button type="primary" size='default'>
-            Refesh
-          </Button>
-          <Button type="danger" size='default'>
-            To day
-          </Button>
-          <Calendar
-            name="datetime"
-            // onChange={(date) => setStartDate(date)}
-            placeholder="Select date"
-            picker={dateWeek}
-          />
-          <Button onClick={() => handleSetDate("month")}>Day</Button>
-          <Button onClick={() => handleSetDate("week")}>
-            Week
-          </Button>
-        </Space>
-      </Breadcrumb>
-
-      <TabDate />
-      </div>
-
       <div
         className="site-layout-background"
-        style={{ padding: 24, minHeight: 360 }}
+        style={{ padding: 24, minHeight: 360, marginTop: 20 }}
       >
 
         <Space className="mb-5">
-          Total Punished : 3  <DatePicker size='default' picker="year" /> <DatePicker size='default' picker="month" />
+          <DatePicker size='default'
+            value={filter.month}
+            onChange={value => setFilter({
+              ...filter,
+              month: value
+            })}
+            picker="month" />
         </Space>
 
         <Table
+          rowKey="id"
           columns={columns}
+          expandable={{
+            expandedRowRender,
+          }}
           dataSource={data}
           bordered
           size="middle"
         />
       </div>
 
-      {visible && (
-        <Modal
-          title={action === "add" ? "Thêm" : "Thông tin chi tiết"}
-          width={567}
-          visible={visible}
-          onCancel={() => {
-            setVisible(false);
-            setAction("");
-            setItem(null);
-          }}
-          footer={null}
-        >
-          <div>
-            <Form/>
+      <Modal visible={!!openComplain}
+        title={`Khiếu nại`}
+        onCancel={
+          () => setOpenComplain(null)
+        }
+        onOk={() => sendCompain()}
+      >
+        <Input
+          value={complainContent}
+          onChange={v => setComplainContent(v.target.value)}
+        />
+      </Modal>
 
-            
-          </div>
-        </Modal>
-      )}
     </div>
   );
 };
 export default CustomerPage;
+
+
